@@ -1,0 +1,19 @@
+{
+  "entries": [
+    {
+      "id": "feedback_6a060c7286f0",
+      "rating": 5,
+      "frustrationMoment": "Mostly okay",
+      "planningProcess": "Google",
+      "reaction": "This would genuinely save me time",
+      "shareMoment": "Yes",
+      "pricingDecision": "I would pay if the trip stays practical.",
+      "tripOrigin": "Mumbai",
+      "tripDestination": "Jaipur",
+      "userName": "Admin Test",
+      "userEmail": "admin-test@example.com",
+      "submittedAt": "2026-03-21T20:54:17.495Z"
+    }
+  ],
+  "updatedAt": "2026-03-21T20:54:17.498Z"
+}

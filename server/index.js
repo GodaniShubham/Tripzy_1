@@ -2,6 +2,7 @@ import cors from 'cors';
 import crypto from 'crypto';
 import express from 'express';
 import fs from 'fs';
+import { createServer } from 'http';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createAiProviderPool } from './lib/aiProviderPool.js';
@@ -199,6 +200,7 @@ const readFeedbackStore = () => readJsonFile(FEEDBACK_FILE, DEFAULT_FEEDBACK);
 const writeFeedbackStore = (feedbackStore) => writeJsonFile(FEEDBACK_FILE, feedbackStore);
 const readItinerariesStore = () => readJsonFile(ITINERARIES_FILE, DEFAULT_ITINERARIES);
 const writeItinerariesStore = (itinerariesStore) => writeJsonFile(ITINERARIES_FILE, itinerariesStore);
+const liveAdminSockets = new Set();
 
 const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
 const cleanText = (value = '', maxLength = 140) => String(value || '').trim().slice(0, maxLength);
@@ -311,6 +313,16 @@ const getTokenFromRequest = (request) => {
   return header.slice(7).trim();
 };
 
+const getAdminTokenFromUpgradeRequest = (request) => {
+  try {
+    const requestUrl = new URL(request.url || '/', 'http://localhost');
+    const tokenFromQuery = cleanText(requestUrl.searchParams.get('token') || '', 120);
+    if (tokenFromQuery) return tokenFromQuery;
+  } catch {}
+
+  return getTokenFromRequest(request);
+};
+
 const requireAuth = (request, response, next) => {
   const token = getTokenFromRequest(request);
   const sessionState = readSessionUser(token);
@@ -335,6 +347,76 @@ const requireAdminAuth = (request, response, next) => {
 
   request.adminAuth = sessionState;
   next();
+};
+
+const createWebSocketAcceptValue = (key) =>
+  crypto.createHash('sha1').update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
+
+const encodeWebSocketFrame = (payload) => {
+  const body = Buffer.from(String(payload || ''), 'utf8');
+
+  if (body.length < 126) {
+    return Buffer.concat([Buffer.from([0x81, body.length]), body]);
+  }
+
+  if (body.length < 65536) {
+    const header = Buffer.alloc(4);
+    header[0] = 0x81;
+    header[1] = 126;
+    header.writeUInt16BE(body.length, 2);
+    return Buffer.concat([header, body]);
+  }
+
+  const header = Buffer.alloc(10);
+  header[0] = 0x81;
+  header[1] = 127;
+  header.writeBigUInt64BE(BigInt(body.length), 2);
+  return Buffer.concat([header, body]);
+};
+
+const sendWebSocketJson = (socket, payload) => {
+  if (!socket || socket.destroyed || !socket.writable) return;
+
+  try {
+    socket.write(encodeWebSocketFrame(JSON.stringify(payload)));
+  } catch (error) {
+    console.error('Failed to send websocket payload.', error);
+  }
+};
+
+const buildAdminLivePayload = () => ({
+  type: 'admin_overview',
+  overview: buildDashboardOverview(),
+  sentAt: new Date().toISOString(),
+});
+
+const broadcastAdminPayload = (payload) => {
+  liveAdminSockets.forEach((socket) => {
+    if (!socket || socket.destroyed || !socket.writable) {
+      liveAdminSockets.delete(socket);
+      return;
+    }
+    sendWebSocketJson(socket, payload);
+  });
+};
+
+const broadcastAdminLivePayload = () => {
+  broadcastAdminPayload(buildAdminLivePayload());
+};
+
+const buildAdminCounterPreviewPayload = () => {
+  const overview = buildDashboardOverview();
+  const limit = Number(overview.earlyUserLimit || EARLY_USER_LIMIT) || EARLY_USER_LIMIT;
+
+  return {
+    type: 'admin_counter_preview',
+    overview: {
+      ...overview,
+      earlyUsersClaimed: limit,
+      earlyUsersRemaining: 0,
+    },
+    sentAt: new Date().toISOString(),
+  };
 };
 
 const attachOptionalAuth = (request, _response, next) => {
@@ -476,6 +558,7 @@ const recordItineraryLog = (payload) => {
     ...(Array.isArray(itinerariesStore.entries) ? itinerariesStore.entries : []),
   ].slice(0, 5000);
   writeItinerariesStore(itinerariesStore);
+  broadcastAdminLivePayload();
   return entry;
 };
 
@@ -1006,6 +1089,7 @@ const getCorsOptions = () => {
 };
 
 const app = express();
+const server = createServer(app);
 const aiProviderPool = createAiProviderPool({
   stateFilePath: AI_PROVIDER_STATE_FILE,
 });
@@ -1071,6 +1155,7 @@ const trackUsage = (request, response) => {
   }
 
   writeAnalytics(analytics);
+  broadcastAdminLivePayload();
   response.status(202).json(buildSummary(analytics));
 };
 
@@ -1129,6 +1214,7 @@ app.post('/api/auth/signup', (request, response) => {
   };
 
   writeUsersStore(usersStore);
+  broadcastAdminLivePayload();
   response.status(201).json({
     token,
     user: sanitizeUser(usersStore.users[userId]),
@@ -1242,6 +1328,7 @@ app.post('/api/feedback', (request, response) => {
   ].slice(0, 500);
 
   writeFeedbackStore(feedbackStore);
+  broadcastAdminLivePayload();
   response.status(201).json({ ok: true });
 });
 
@@ -1406,6 +1493,15 @@ app.get('/api/admin/providers', requireAdminAuth, (_request, response) => {
   });
 });
 
+app.post('/api/admin/live-counter/test', requireAdminAuth, (_request, response) => {
+  const payload = buildAdminCounterPreviewPayload();
+  broadcastAdminPayload(payload);
+  response.json({
+    ok: true,
+    preview: payload.overview,
+  });
+});
+
 app.get('/api/admin/export/:resource.:format', requireAdminAuth, (request, response) => {
   const resource = cleanText(request.params.resource, 40);
   const format = cleanText(request.params.format, 20).toLowerCase();
@@ -1530,6 +1626,73 @@ app.get('/api/share/:shareId', (request, response) => {
 
 ensureStorage();
 
-app.listen(PORT, () => {
+server.on('upgrade', (request, socket) => {
+  try {
+    const requestUrl = new URL(request.url || '/', 'http://localhost');
+
+    if (requestUrl.pathname !== '/ws/admin-live') {
+      socket.write('HTTP/1.1 404 Not Found\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    const token = getAdminTokenFromUpgradeRequest(request);
+    const sessionState = readAdminSession(token);
+    const upgradeHeader = String(request.headers.upgrade || '').toLowerCase();
+    const socketKey = String(request.headers['sec-websocket-key'] || '').trim();
+
+    if (!sessionState || upgradeHeader !== 'websocket' || !socketKey) {
+      socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
+      socket.destroy();
+      return;
+    }
+
+    const acceptValue = createWebSocketAcceptValue(socketKey);
+    socket.write(
+      [
+        'HTTP/1.1 101 Switching Protocols',
+        'Upgrade: websocket',
+        'Connection: Upgrade',
+        `Sec-WebSocket-Accept: ${acceptValue}`,
+        '\r\n',
+      ].join('\r\n')
+    );
+
+    liveAdminSockets.add(socket);
+    sendWebSocketJson(socket, buildAdminLivePayload());
+
+    socket.on('close', () => {
+      liveAdminSockets.delete(socket);
+    });
+
+    socket.on('end', () => {
+      liveAdminSockets.delete(socket);
+    });
+
+    socket.on('error', () => {
+      liveAdminSockets.delete(socket);
+    });
+
+    socket.on('data', (chunk) => {
+      if (!Buffer.isBuffer(chunk) || chunk.length < 2) return;
+      const opcode = chunk[0] & 0x0f;
+
+      if (opcode === 0x8) {
+        liveAdminSockets.delete(socket);
+        socket.end();
+        return;
+      }
+
+      if (opcode === 0x9) {
+        socket.write(Buffer.from([0x8a, 0x00]));
+      }
+    });
+  } catch (error) {
+    console.error('Admin live websocket upgrade failed.', error);
+    socket.destroy();
+  }
+});
+
+server.listen(PORT, () => {
   console.log(`Tripzy backend running on port ${PORT}`);
 });

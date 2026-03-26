@@ -1,13 +1,23 @@
-const ADMIN_API_BASE =
-  import.meta.env.VITE_USAGE_API_URL ||
-  import.meta.env.VITE_ANALYTICS_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:4000' : '');
+const pickAdminApiBase = () => {
+  const configuredBase = import.meta.env.VITE_USAGE_API_URL || import.meta.env.VITE_ANALYTICS_API_URL || '';
+  const normalizedBase = String(configuredBase || '').trim();
+
+  if (normalizedBase.includes('your-backend-service.onrender.com')) {
+    return import.meta.env.DEV ? 'http://localhost:4000' : '';
+  }
+
+  return normalizedBase || (import.meta.env.DEV ? 'http://localhost:4000' : '');
+};
+
+const ADMIN_API_BASE = pickAdminApiBase();
 
 const ADMIN_TOKEN_STORAGE_KEY = 'tripzy_admin_token';
 
 const buildApiUrl = (path) => `${ADMIN_API_BASE}${path}`;
 
 export const getStoredAdminToken = () => sessionStorage.getItem(ADMIN_TOKEN_STORAGE_KEY) || '';
+
+export const getAdminApiBase = () => ADMIN_API_BASE;
 
 const setStoredAdminToken = (token) => {
   sessionStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
@@ -97,6 +107,20 @@ export const fetchAdminPanelData = async () => {
   return parseJsonResponse(response);
 };
 
+export const triggerLiveCounterTest = async () => {
+  const response = await fetch(buildApiUrl('/api/admin/live-counter/test'), {
+    method: 'POST',
+    headers: authorizedHeaders(),
+  });
+
+  if (response.status === 401) {
+    clearStoredAdminToken();
+    throw new Error('Admin session expired. Please sign in again.');
+  }
+
+  return parseJsonResponse(response);
+};
+
 export const downloadAdminExport = async ({ resource, format = 'csv' }) => {
   const response = await fetch(buildApiUrl(`/api/admin/export/${resource}.${format}`), {
     headers: authorizedHeaders(),
@@ -119,4 +143,18 @@ export const downloadAdminExport = async ({ resource, format = 'csv' }) => {
   link.download = `tripzy-${resource}-export.${format}`;
   link.click();
   URL.revokeObjectURL(downloadUrl);
+};
+
+export const buildAdminWebSocketUrl = () => {
+  const token = getStoredAdminToken();
+  if (!ADMIN_API_BASE || !token) return '';
+
+  try {
+    const url = new URL('/ws/admin-live', ADMIN_API_BASE);
+    url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+    url.searchParams.set('token', token);
+    return url.toString();
+  } catch {
+    return '';
+  }
 };

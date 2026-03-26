@@ -234,11 +234,19 @@
     "dcc0bbdcc518631c9a8c4966e9d9ca33d86af6f44a7e0842": {
       "username": "tripzy_admin",
       "createdAt": "2026-03-25T17:55:16.979Z"
+    },
+    "fc6c6112d583fa64396f12cb957559d9c32646f085ed6006": {
+      "username": "tripzy_admin",
+      "createdAt": "2026-03-26T08:50:42.374Z"
+    },
+    "9f3f82578335c49b7a733286893e6491b7dea1b4732f21ae": {
+      "username": "Tripzy",
+      "createdAt": "2026-03-26T16:31:33.118Z"
     }
   },
   "meta": {
     "earlyUserLimit": 500,
     "earlyUsersAllocated": 0
   },
-  "updatedAt": "2026-03-25T17:55:16.982Z"
+  "updatedAt": "2026-03-26T16:31:33.122Z"
 }

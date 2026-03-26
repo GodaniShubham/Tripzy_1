@@ -69,6 +69,25 @@ const travelStyleKeywordMap = {
   Adventure: ['adventure', 'waterfall', 'viewpoint', 'trek', 'pass', 'gondola', 'valley'],
   Cultural: ['heritage', 'museum', 'fort', 'palace', 'temple', 'historical'],
   Food: ['food', 'street food', 'market', 'cafe'],
+  Walker: ['walk', 'walking', 'old town', 'riverfront', 'promenade', 'street', 'heritage', 'market', 'garden'],
+  Cyclist: ['cycle', 'cycling', 'trail', 'riverfront', 'lake', 'promenade', 'park', 'viewpoint', 'scenic drive'],
+  Rider: ['road trip', 'highway', 'pass', 'mountain', 'valley', 'viewpoint', 'coastal', 'fort', 'sunrise'],
+  Backpacker: ['hostel', 'market', 'street food', 'walking', 'budget', 'heritage', 'cafe', 'local market'],
+  Family: ['park', 'museum', 'zoo', 'lake', 'beach', 'garden', 'fort', 'boat', 'family'],
+  Photographer: ['sunrise', 'sunset', 'viewpoint', 'lake', 'mountain', 'fort', 'heritage', 'riverfront', 'island'],
+};
+
+const travelStyleDescriptions = {
+  Relaxed: 'easy pace, scenic spots, low-rush movement, calmer experiences',
+  Adventure: 'active movement, scenic thrills, outdoor-heavy experiences',
+  Cultural: 'heritage-led sightseeing, museums, monuments, local culture',
+  Food: 'food-first exploration, cafes, markets, signature local eating spots',
+  Walker: 'walk-friendly exploration with compact neighborhoods, promenades, and slower local discovery',
+  Cyclist: 'cycle-friendly exploration with longer scenic stretches, parks, and road-based movement',
+  Rider: 'motorbike or road-rider focused travel with strong route flow, viewpoints, and driving segments',
+  Backpacker: 'budget-aware, local, flexible exploration with markets, food streets, and practical movement',
+  Family: 'comfortable group-friendly sightseeing with easy logistics and broadly enjoyable stops',
+  Photographer: 'image-first exploration focused on viewpoints, light, scenery, and visually strong landmarks',
 };
 
 const tripStyleKeywordMap = {
@@ -145,6 +164,9 @@ const getTravelerLabel = (travelers = '1') => {
   return count === 1 ? '1 traveler' : `${count} travelers`;
 };
 
+const getTravelStyleDescription = (travelStyle = 'Relaxed') =>
+  travelStyleDescriptions[travelStyle] || travelStyleDescriptions.Relaxed;
+
 const getStopsPerDay = (pace = 'Moderate', travelers = '1') => {
   const travelerCount = getTravelerCount(travelers);
   if (pace === 'Slow') return travelerCount >= 4 ? 2 : 3;
@@ -177,6 +199,60 @@ const uniqueByName = (items = []) => {
     seen.add(key);
     return true;
   });
+};
+
+const withNearbyCityLabel = (place, city) => {
+  const cityName = city?.name || '';
+  const normalizedPlaceName = normalizeSearchText(place?.name || '');
+  const normalizedCityName = normalizeSearchText(cityName);
+  const alreadyTagged = normalizedCityName && normalizedPlaceName.includes(normalizedCityName);
+
+  return {
+    ...place,
+    name: alreadyTagged ? place.name : `${place.name} (${cityName})`,
+    address: place.address || city.formatted || `${cityName}, India`,
+    nearbyCityName: cityName,
+  };
+};
+
+const getRequiredUniquePlaces = (preferences = {}) =>
+  Math.max(18, (Number(preferences.days || 3) || 3) * getStopsPerDay(preferences.pace, preferences.travelers));
+
+const findNearbyCities = (destination, limit = 6) => {
+  const candidates = uniqueByName([...fallbackPlaceCatalog, ...loadIndiaFallbackCatalog()])
+    .filter((city) => {
+      if (!Number.isFinite(city?.lat) || !Number.isFinite(city?.lon)) return false;
+      const cityKey = normalizeSearchText(city.name);
+      const destinationKey = normalizeSearchText(destination.name);
+      return cityKey && cityKey !== destinationKey;
+    })
+    .map((city) => ({
+      ...city,
+      linearDistanceKm: haversineDistance(destination, city) / 1000,
+    }))
+    .filter((city) => city.linearDistanceKm <= 280)
+    .sort((left, right) => left.linearDistanceKm - right.linearDistanceKm);
+
+  return candidates.slice(0, limit);
+};
+
+const expandPlacesWithNearbyCities = ({ destination, preferences, places = [] }) => {
+  const requiredUniquePlaces = getRequiredUniquePlaces(preferences);
+  const basePool = uniqueByName(places);
+
+  if (basePool.length >= requiredUniquePlaces) {
+    return sortPlacesForPreferences(basePool, preferences);
+  }
+
+  const nearbyCities = findNearbyCities(destination, 8);
+  const borrowedPlaces = nearbyCities.flatMap((city) =>
+    buildCuratedFallbackPlaces(city).map((place) => ({
+      ...withNearbyCityLabel(place, city),
+      distanceMeters: Math.round(haversineDistance(destination, city) + (place.distanceMeters || 0)),
+    }))
+  );
+
+  return sortPlacesForPreferences(uniqueByName([...basePool, ...borrowedPlaces]), preferences);
 };
 
 const buildCatalogSearchResults = (catalog, text, limit = 5) => {
@@ -382,7 +458,7 @@ const sortPlacesForPreferences = (places = [], preferences) =>
 
 const getNearbyPlaces = async (destination, preferences) => {
   const curated = buildCuratedFallbackPlaces(destination);
-  if (!GEOAPIFY_API_KEY) return sortPlacesForPreferences(curated, preferences);
+  if (!GEOAPIFY_API_KEY) return expandPlacesWithNearbyCities({ destination, preferences, places: curated });
 
   try {
     const url = new URL(`${GEO_BASE}/v2/places`);
@@ -405,10 +481,14 @@ const getNearbyPlaces = async (destination, preferences) => {
       }))
       .filter((place) => place.name && Number.isFinite(place.lat) && Number.isFinite(place.lon));
 
-    return sortPlacesForPreferences(uniqueByName([...curated, ...livePlaces]), preferences);
+    return expandPlacesWithNearbyCities({
+      destination,
+      preferences,
+      places: uniqueByName([...curated, ...livePlaces]),
+    });
   } catch (error) {
     console.error('Geoapify places failed, using curated fallback places.', error);
-    return sortPlacesForPreferences(curated, preferences);
+    return expandPlacesWithNearbyCities({ destination, preferences, places: curated });
   }
 };
 
@@ -820,7 +900,7 @@ const buildAiPlanningRules = ({ preferences, route, budgetEstimate, journey }) =
   `Follow the requested transfer preference: ${preferences.travelMode.toLowerCase()}.`,
   `Make the plan suitable for ${getTravelerLabel(preferences.travelers).toLowerCase()} traveling together.`,
   `Prioritize places that match these interests: ${buildInterestSummary(preferences.interests)}.`,
-  `Reflect the requested travel style (${preferences.travelStyle}) in the actual stop selection, not just in wording.`,
+  `Reflect the requested travel style (${preferences.travelStyle}: ${getTravelStyleDescription(preferences.travelStyle)}) in the actual stop selection, not just in wording.`,
   `Reflect the requested trip style (${preferences.tripType}) in the overall structure and place choices.`,
   `Keep arrival and transfer effort practical because the route is ${route.durationText} and the suggested travel chain is ${journey.summary}.`,
 ].map((rule) => `- ${rule}`).join('\n');
@@ -834,7 +914,14 @@ const buildDayTheme = (destinationName, dayIndex, stopNames, templates, seed) =>
 const buildFallbackItinerary = ({ destination, preferences, places, weather, route, journey }) => {
   const stopLimit = getStopsPerDay(preferences.pace, preferences.travelers);
   const seed = seedFromText(`${destination.name}-${preferences.travelStyle}-${preferences.tripType}-${preferences.interests.join(',')}-${preferences.days}`);
-  const allPlaces = seededShuffle(sortPlacesForPreferences(uniqueByName(places.length ? places : buildCuratedFallbackPlaces(destination)), preferences), seed);
+  const allPlaces = seededShuffle(
+    expandPlacesWithNearbyCities({
+      destination,
+      preferences,
+      places: uniqueByName(places.length ? places : buildCuratedFallbackPlaces(destination)),
+    }),
+    seed
+  );
   const selectedStops = [];
   const usedNames = new Set();
 
@@ -881,14 +968,20 @@ const buildFallbackItinerary = ({ destination, preferences, places, weather, rou
     date.setDate(date.getDate() + index);
     const dayWeather = weather[index];
     const dayPlaces = [];
-    const startIndex = index * stopLimit;
+    const perDayUsed = new Set();
+    const safePool = selectedStops.length ? selectedStops : allPlaces;
+    const startIndex = (index * stopLimit) % Math.max(1, safePool.length);
 
-    for (let pointer = startIndex; pointer < selectedStops.length && dayPlaces.length < stopLimit; pointer += 1) {
-      dayPlaces.push(selectedStops[pointer]);
+    for (let offset = 0; offset < safePool.length && dayPlaces.length < stopLimit; offset += 1) {
+      const place = safePool[(startIndex + offset) % safePool.length];
+      const key = normalizeSearchText(place?.name || '');
+      if (!key || perDayUsed.has(key)) continue;
+      perDayUsed.add(key);
+      dayPlaces.push(place);
     }
 
     if (!dayPlaces.length) {
-      dayPlaces.push(...selectedStops.slice(0, Math.max(1, stopLimit)));
+      dayPlaces.push(...safePool.slice(0, Math.max(1, stopLimit)));
     }
 
     const stops = dayPlaces.map((place, stopIndex) => ({
@@ -988,61 +1081,65 @@ const normalizeAiJson = (parsed, fallbackDays, stopLimit) => {
   return {
     overview,
     tips,
-    days: days.slice(0, fallbackDays.length).map((day, index) => ({
-      day: Number(day.day) || fallbackDays[index].day,
-      date: typeof day.date === 'string' ? day.date : fallbackDays[index].date,
+    days: fallbackDays.map((fallbackDay, index) => {
+      const day = days[index] || {};
+      return ({
+      day: Number(day.day) || fallbackDay.day,
+      date: typeof day.date === 'string' ? day.date : fallbackDay.date,
       theme:
         typeof day.theme === 'string'
           ? day.theme
           : typeof day.title === 'string'
             ? day.title
-            : fallbackDays[index].theme,
+            : fallbackDay.theme,
       summary:
         typeof day.summary === 'string'
           ? day.summary
           : typeof day.description === 'string'
             ? day.description
-            : fallbackDays[index].summary,
+            : fallbackDay.summary,
       weatherNote:
         typeof day.weatherNote === 'string'
           ? day.weatherNote
           : typeof day.weather === 'string'
             ? day.weather
-            : fallbackDays[index].weatherNote,
+            : fallbackDay.weatherNote,
       stops: Array.isArray(day.stops || day.places || day.activities)
         ? (day.stops || day.places || day.activities).slice(0, stopLimit).map((stop, stopIndex) => ({
-            name: typeof stop.name === 'string' ? stop.name : fallbackDays[index].stops[stopIndex]?.name,
+            name: typeof stop.name === 'string' ? stop.name : fallbackDay.stops[stopIndex]?.name,
             type:
               typeof stop.type === 'string'
                 ? stop.type
                 : typeof stop.category === 'string'
                   ? stop.category
-                  : fallbackDays[index].stops[stopIndex]?.type || 'attraction',
+                  : fallbackDay.stops[stopIndex]?.type || 'attraction',
             reason:
               typeof stop.reason === 'string'
                 ? stop.reason
                 : typeof stop.note === 'string'
                   ? stop.note
-                  : fallbackDays[index].stops[stopIndex]?.reason || 'Included for a balanced day plan.',
+                  : fallbackDay.stops[stopIndex]?.reason || 'Included for a balanced day plan.',
             duration:
               typeof stop.duration === 'string'
                 ? stop.duration
                 : typeof stop.time === 'string'
                   ? stop.time
-                  : fallbackDays[index].stops[stopIndex]?.duration || '1 hr',
+                  : fallbackDay.stops[stopIndex]?.duration || '1 hr',
           })).filter((stop) => stop.name)
-        : fallbackDays[index].stops,
-    })),
+        : fallbackDay.stops,
+    });
+    }),
   };
 };
 
 const generateItinerary = async ({ origin, destination, route, places, weather, preferences, budgetEstimate, journey, aiRequester }) => {
   const stopLimit = getStopsPerDay(preferences.pace, preferences.travelers);
-  const compactPlaces = places.slice(0, Math.min(24, Math.max(10, preferences.days * stopLimit))).map((place) => ({
+  const compactPlaces = places.slice(0, Math.min(72, Math.max(18, preferences.days * stopLimit * 2))).map((place) => ({
     name: place.name,
     category: place.categoryLabel,
     address: place.address,
     distanceKm: Number((place.distanceMeters / 1000).toFixed(1)),
+    nearbyCityName: place.nearbyCityName || '',
   }));
   const maxTokens = Math.min(1600, Math.max(650, 320 + preferences.days * stopLimit * 18));
   const compactWeather = weather.map((entry) => ({
@@ -1055,12 +1152,14 @@ const generateItinerary = async ({ origin, destination, route, places, weather, 
 
   const fallbackPlan = buildFallbackItinerary({ destination, preferences, places, weather, route, journey });
   const prompt = `
-Create a compact India travel itinerary in valid JSON only.
+Create a full India travel itinerary in valid JSON only.
 Use only the provided places. Do not invent any new stop names.
-Keep it fast, concise, and practical.
+Keep it practical, realistic, and complete for the full trip length.
 Respect every submitted trip parameter and let them materially change the plan.
-Do not repeat the same stop name across different days unless there are not enough unique candidate places.
-Make each day feel different, with a distinct theme and summary.
+Return exactly ${preferences.days} day objects in the "days" array.
+If the main destination does not have enough unique places for all requested days, continue using the provided nearby-city candidate places already included in the input.
+Do not repeat the same stop name across different days unless there are still not enough unique candidate places after using nearby-city options.
+Make each day feel different, with a distinct theme, summary, and stop mix.
 Return exactly one JSON object with this shape:
 {
   "overview": "string",
@@ -1159,7 +1258,15 @@ export const buildTripPlanOnServer = async ({ preferences, aiRequester, onProgre
   onProgress?.('route');
   const routePromise = withTimeout(getRoute(origin, destination), 6000, () => buildApproxRoute(origin, destination));
   onProgress?.('places');
-  const placesPromise = withTimeout(getNearbyPlaces(destination, preferences), 5000, () => buildCuratedFallbackPlaces(destination));
+  const placesPromise = withTimeout(
+    getNearbyPlaces(destination, preferences),
+    5000,
+    () => expandPlacesWithNearbyCities({
+      destination,
+      preferences,
+      places: buildCuratedFallbackPlaces(destination),
+    })
+  );
   onProgress?.('weather');
   const weatherPromise = withTimeout(getWeatherForecast(destination, preferences.fromDate, preferences.toDate), 4000, []);
 

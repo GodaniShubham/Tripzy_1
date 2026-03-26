@@ -109,6 +109,12 @@ const travelStyleKeywordMap = {
   Adventure: ['adventure', 'viewpoint', 'mountain', 'valley', 'waterfall', 'gondola', 'trek', 'rafting', 'pass'],
   Cultural: ['heritage', 'museum', 'culture', 'historical', 'fort', 'palace', 'temple', 'church', 'monument'],
   Food: ['food', 'street food', 'market', 'restaurant', 'cafe', 'bazaar'],
+  Walker: ['walk', 'walking', 'old town', 'riverfront', 'promenade', 'street', 'heritage', 'market', 'garden'],
+  Cyclist: ['cycle', 'cycling', 'trail', 'riverfront', 'lake', 'promenade', 'park', 'viewpoint', 'scenic drive'],
+  Rider: ['road trip', 'highway', 'pass', 'mountain', 'valley', 'viewpoint', 'coastal', 'fort', 'sunrise'],
+  Backpacker: ['hostel', 'market', 'street food', 'walking', 'budget', 'heritage', 'cafe', 'local market'],
+  Family: ['park', 'museum', 'zoo', 'lake', 'beach', 'garden', 'fort', 'boat', 'family'],
+  Photographer: ['sunrise', 'sunset', 'viewpoint', 'lake', 'mountain', 'fort', 'heritage', 'riverfront', 'island'],
 };
 
 const tripStyleKeywordMap = {
@@ -123,6 +129,12 @@ const travelStyleDescriptions = {
   Adventure: 'active movement, scenic thrills, outdoor-heavy experiences',
   Cultural: 'heritage-led sightseeing, museums, monuments, local culture',
   Food: 'food-first exploration, cafes, markets, signature local eating spots',
+  Walker: 'walk-friendly exploration with compact neighborhoods, promenades, and slower local discovery',
+  Cyclist: 'cycle-friendly exploration with longer scenic stretches, parks, and road-based movement',
+  Rider: 'motorbike or road-rider focused travel with strong route flow, viewpoints, and driving segments',
+  Backpacker: 'budget-aware, local, flexible exploration with markets, food streets, and practical movement',
+  Family: 'comfortable group-friendly sightseeing with easy logistics and broadly enjoyable stops',
+  Photographer: 'image-first exploration focused on viewpoints, light, scenery, and visually strong landmarks',
 };
 
 const tripStyleDescriptions = {
@@ -847,6 +859,41 @@ const buildCategoryList = (preferences) => {
   if (preferences.travelStyle === 'Adventure' || preferences.tripType === 'Adventure') {
     categories.add('natural');
     categories.add('activity');
+  }
+
+  if (preferences.travelStyle === 'Walker') {
+    categories.add('tourism.sights');
+    categories.add('leisure.park');
+    categories.add('natural');
+  }
+
+  if (preferences.travelStyle === 'Cyclist') {
+    categories.add('natural');
+    categories.add('activity');
+    categories.add('leisure.park');
+  }
+
+  if (preferences.travelStyle === 'Rider') {
+    categories.add('natural');
+    categories.add('tourism.sights');
+  }
+
+  if (preferences.travelStyle === 'Backpacker') {
+    categories.add('catering');
+    categories.add('commercial');
+    categories.add('tourism.sights');
+  }
+
+  if (preferences.travelStyle === 'Family') {
+    categories.add('leisure.park');
+    categories.add('tourism.sights');
+    categories.add('entertainment.museum');
+  }
+
+  if (preferences.travelStyle === 'Photographer') {
+    categories.add('natural');
+    categories.add('tourism.sights');
+    categories.add('leisure.park.garden');
   }
 
   if (preferences.travelStyle === 'Relaxed' || preferences.tripType === 'Relaxed') {

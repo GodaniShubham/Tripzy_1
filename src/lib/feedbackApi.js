@@ -1,7 +1,15 @@
-const FEEDBACK_API_BASE =
-  import.meta.env.VITE_USAGE_API_URL ||
-  import.meta.env.VITE_ANALYTICS_API_URL ||
-  (import.meta.env.DEV ? 'http://localhost:4000' : '');
+const pickFeedbackApiBase = () => {
+  const configuredBase = import.meta.env.VITE_USAGE_API_URL || import.meta.env.VITE_ANALYTICS_API_URL || '';
+  const normalizedBase = String(configuredBase || '').trim();
+
+  if (normalizedBase.includes('your-backend-service.onrender.com')) {
+    return import.meta.env.DEV ? 'http://localhost:4000' : '';
+  }
+
+  return normalizedBase || (import.meta.env.DEV ? 'http://localhost:4000' : '');
+};
+
+const FEEDBACK_API_BASE = pickFeedbackApiBase();
 
 const buildApiUrl = (path) => `${FEEDBACK_API_BASE}${path}`;
 

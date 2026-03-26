@@ -273,6 +273,7 @@ export default function Overview() {
     pricingDecision: '',
   });
   const [feedbackError, setFeedbackError] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [leaveWarning, setLeaveWarning] = useState('');
   const hasExitGuardEntry = useRef(false);
 
@@ -433,6 +434,8 @@ export default function Overview() {
   };
 
   const handleFeedbackSubmit = async () => {
+    if (isSubmittingFeedback) return;
+
     const resolvedPlanningProcess =
       feedbackAnswers.planningProcess === 'Other'
         ? feedbackAnswers.planningProcessOther.trim()
@@ -462,9 +465,12 @@ export default function Overview() {
     };
 
     try {
+      setIsSubmittingFeedback(true);
       await submitTripFeedback(feedbackPayload);
     } catch (error) {
       console.error('Failed to submit feedback to backend', error);
+    } finally {
+      setIsSubmittingFeedback(false);
     }
 
     saveTripFeedback(tripFeedbackId, feedbackPayload);
@@ -1174,9 +1180,10 @@ export default function Overview() {
 
               <button
                 onClick={handleFeedbackSubmit}
-                className="mt-5 w-full h-[52px] rounded-[18px] bg-gradient-to-r from-[#ff7a18] to-[#ff9a3c] text-white font-extrabold text-[14px] shadow-[0_8px_20px_rgba(255,122,24,0.28)] active:scale-[0.98] transition-transform"
+                disabled={isSubmittingFeedback}
+                className="mt-5 w-full h-[52px] rounded-[18px] bg-gradient-to-r from-[#ff7a18] to-[#ff9a3c] text-white font-extrabold text-[14px] shadow-[0_8px_20px_rgba(255,122,24,0.28)] active:scale-[0.98] transition-transform disabled:cursor-not-allowed disabled:opacity-70"
               >
-                Submit feedback and continue
+                {isSubmittingFeedback ? 'Submitting feedback...' : 'Submit feedback and continue'}
               </button>
             </div>
           </div>

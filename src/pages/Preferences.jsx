@@ -4,6 +4,18 @@ import Layout from '../components/Layout';
 import { ChevronLeft, Calendar, DollarSign, Compass, Heart, Users, Zap, ArrowRight, Eye, Route } from 'lucide-react';
 
 const DAY_MS = 86400000;
+const travelStyleOptions = [
+  { id: 'Adventure', label: 'Adventure' },
+  { id: 'Relaxed', label: 'Relaxed' },
+  { id: 'Cultural', label: 'Cultural' },
+  { id: 'Food', label: 'Foodie' },
+  { id: 'Walker', label: 'Walker' },
+  { id: 'Cyclist', label: 'Cyclist' },
+  { id: 'Rider', label: 'Rider' },
+  { id: 'Backpacker', label: 'Backpacker' },
+  { id: 'Family', label: 'Family' },
+  { id: 'Photographer', label: 'Photographer' },
+];
 
 const formatDateInput = (date) => {
   const year = date.getFullYear();
@@ -69,11 +81,11 @@ export default function Preferences() {
     `${dateFrom} to ${dateTo}`,
     `${budget} budget`,
     `${travelMode} mode`,
-    travelStyle,
+    `${travelStyle} travel style`,
     getTravelerSummary(travelers),
-    tripType,
+    `${tripType} trip type`,
     `${pace} pace`,
-    ...(interests.length ? interests : ['General interests']),
+    ...(interests.length ? interests.map((interest) => `${interest} interest`) : ['General interests']),
   ];
 
   const toggleInterest = (interest) => {
@@ -297,6 +309,25 @@ export default function Preferences() {
                   {s.label}
                 </span>
               ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[18px] p-4 mb-3 shadow-[0_4px_14px_rgba(0,0,0,0.06)] overflow-hidden">
+            <p className="text-[10px] font-bold text-[#adb5bd] uppercase tracking-[0.8px] mb-3">
+              Which of these travel styles fits you best?
+            </p>
+            <div className="flex flex-wrap gap-[7px]">
+              {travelStyleOptions
+                .filter((style) => !['Adventure', 'Relaxed', 'Cultural', 'Food'].includes(style.id))
+                .map((style) => (
+                  <span
+                    key={style.id}
+                    onClick={() => setTravelStyle(style.id)}
+                    className={`py-2 px-[13px] rounded-[30px] border-[1.5px] text-xs font-bold cursor-pointer transition-all whitespace-nowrap active:scale-[0.93] ${travelStyle === style.id ? 'bg-[#ff7a18] border-[#ff7a18] text-white' : 'border-[#eaedf2] bg-white text-[#555]'}`}
+                  >
+                    {style.label}
+                  </span>
+                ))}
             </div>
           </div>
 
