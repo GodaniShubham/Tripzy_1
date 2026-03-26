@@ -80,7 +80,7 @@ const buildTripSnapshot = (tripPlan) => {
   };
 };
 
-export const signUp = async ({ name, email, password }) => {
+export const signUp = async ({ name, mobileNumber, email, password }) => {
   if (!isAuthConfigured()) {
     throw new Error('Auth backend is not configured yet.');
   }
@@ -90,7 +90,7 @@ export const signUp = async ({ name, email, password }) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, mobileNumber, email, password }),
   });
 
   const data = await parseJsonResponse(response);

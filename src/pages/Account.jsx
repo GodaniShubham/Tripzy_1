@@ -150,6 +150,7 @@ export default function Account() {
                     <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#94a3b8] mb-2">Signed In</p>
                     <h2 className="text-[20px] font-black text-[#1a1a2e] leading-tight">{user.name}</h2>
                     <p className="text-[12px] text-[#64748b] font-medium mt-2">{user.email}</p>
+                    {user.mobileNumber ? <p className="text-[12px] text-[#64748b] font-medium mt-1">{user.mobileNumber}</p> : null}
                   </div>
                   <button
                     onClick={async () => {

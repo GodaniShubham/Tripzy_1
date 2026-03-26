@@ -267,6 +267,7 @@ const sanitizeUser = (user = {}) => {
     id: user.id,
     name: user.name,
     email: user.email,
+    mobileNumber: cleanText(user.mobileNumber || '', 20),
     createdAt: user.createdAt || null,
     lastLoginAt: user.lastLoginAt || null,
     flags,
@@ -1165,12 +1166,13 @@ app.post('/api/usage/track', trackUsage);
 app.post('/api/analytics/track', trackUsage);
 
 app.post('/api/auth/signup', (request, response) => {
-  const { name, email, password } = request.body || {};
+  const { name, mobileNumber, email, password } = request.body || {};
   const normalizedEmail = normalizeEmail(email);
   const cleanName = cleanText(name, 80);
+  const normalizedMobileNumber = String(mobileNumber || '').replace(/\D/g, '').slice(0, 15);
 
-  if (!cleanName || normalizedEmail.length < 5 || String(password || '').length < 6) {
-    response.status(400).json({ error: 'Name, valid email, and 6+ character password are required.' });
+  if (!cleanName || normalizedMobileNumber.length < 10 || normalizedEmail.length < 5 || String(password || '').length < 6) {
+    response.status(400).json({ error: 'Name, valid mobile number, valid email, and 6+ character password are required.' });
     return;
   }
 
@@ -1190,6 +1192,7 @@ app.post('/api/auth/signup', (request, response) => {
     id: userId,
     name: cleanName,
     email: normalizedEmail,
+    mobileNumber: normalizedMobileNumber,
     passwordHash: hashPassword(password, salt),
     passwordSalt: salt,
     createdAt: now,
@@ -1518,6 +1521,7 @@ app.get('/api/admin/export/:resource.:format', requireAdminAuth, (request, respo
         id: safeUser.id,
         name: safeUser.name,
         email: safeUser.email,
+        mobileNumber: safeUser.mobileNumber || '',
         createdAt: safeUser.createdAt,
         lastLoginAt: safeUser.lastLoginAt,
         isEarlyUser: safeUser.flags?.isEarlyUser ? 'yes' : 'no',

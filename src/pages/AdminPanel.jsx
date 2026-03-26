@@ -950,6 +950,7 @@ export default function AdminPanel() {
                         <div className="min-w-0">
                           <p className="text-[15px] font-black text-slate-950">{user.name}</p>
                           <p className="mt-1 text-[12px] font-semibold text-slate-500 break-all">{user.email}</p>
+                          {user.mobileNumber ? <p className="mt-1 text-[12px] font-semibold text-slate-400">{user.mobileNumber}</p> : null}
                         </div>
                         <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black ${user.flags?.isEarlyUser ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
                           {user.flags?.isEarlyUser ? `#${user.flags?.earlyUserNumber}` : 'Standard'}
@@ -958,6 +959,7 @@ export default function AdminPanel() {
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <InfoPair label="Joined" value={formatDateTime(user.createdAt)} />
                         <InfoPair label="Last login" value={formatDateTime(user.lastLoginAt)} />
+                        <InfoPair label="Mobile" value={user.mobileNumber || '--'} />
                         <InfoPair label="Searches" value={user.activityCounts?.plannerSearches ?? 0} />
                         <InfoPair label="Generated" value={user.activityCounts?.generatedItineraries ?? 0} />
                         <InfoPair label="Shared" value={user.activityCounts?.sharedItineraries ?? 0} />
@@ -977,6 +979,7 @@ export default function AdminPanel() {
                       <tr className="border-b border-slate-200 text-left text-[11px] uppercase tracking-[0.14em] text-slate-400">
                         <th className="pb-3 font-black">User</th>
                         <th className="pb-3 font-black">Email</th>
+                        <th className="pb-3 font-black">Mobile</th>
                         <th className="pb-3 font-black">Early Access</th>
                         <th className="pb-3 font-black">Searches</th>
                         <th className="pb-3 font-black">Generated</th>
@@ -992,6 +995,7 @@ export default function AdminPanel() {
                             <p className="mt-1 text-[11px] font-semibold text-slate-400">Joined {formatDateTime(user.createdAt)}</p>
                           </td>
                           <td className="py-4 pr-4 text-[13px] font-semibold text-slate-600">{user.email}</td>
+                          <td className="py-4 pr-4 text-[13px] font-semibold text-slate-600">{user.mobileNumber || '--'}</td>
                           <td className="py-4 pr-4">
                             <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-black ${user.flags?.isEarlyUser ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500'}`}>
                               {user.flags?.isEarlyUser ? `Yes #${user.flags?.earlyUserNumber}` : 'No'}
