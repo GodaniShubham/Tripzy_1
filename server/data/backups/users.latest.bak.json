@@ -1,0 +1,244 @@
+{
+  "schemaVersion": 2,
+  "users": {
+    "user_155a5ded494c": {
+      "id": "user_155a5ded494c",
+      "name": "Tripzy Tester",
+      "email": "tester@example.com",
+      "passwordHash": "6fbb3847b06ebb4d52de61171169947adaaf3b66ef04ac86149669a387c3cefa",
+      "passwordSalt": "ac6ead13a0928a8bdfbfdadf6eba3607",
+      "createdAt": "2026-03-21T20:07:57.754Z",
+      "lastLoginAt": "2026-03-21T20:07:57.754Z",
+      "activities": {
+        "plannerSearches": [
+          {
+            "tripKey": "mumbai|udaipur|2026-03-25|2026-03-28|Smart",
+            "origin": "Mumbai",
+            "destination": "Udaipur",
+            "routeLabel": "Mumbai to Udaipur",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "?19,787",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "planner_search",
+            "updatedAt": "2026-03-21T20:07:57.875Z",
+            "createdAt": "2026-03-21T20:07:57.875Z"
+          }
+        ],
+        "generatedItineraries": [
+          {
+            "tripKey": "mumbai|udaipur|2026-03-25|2026-03-28|Smart",
+            "origin": "Mumbai",
+            "destination": "Udaipur",
+            "routeLabel": "Mumbai to Udaipur",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "?19,787",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "generated_itinerary",
+            "updatedAt": "2026-03-21T20:07:57.875Z",
+            "createdAt": "2026-03-21T20:07:57.875Z"
+          }
+        ],
+        "sharedItineraries": [
+          {
+            "tripKey": "mumbai|udaipur|2026-03-25|2026-03-28|Smart",
+            "origin": "Mumbai",
+            "destination": "Udaipur",
+            "routeLabel": "Mumbai to Udaipur",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "?19,787",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "shared_itinerary",
+            "updatedAt": "2026-03-21T20:07:57.875Z",
+            "createdAt": "2026-03-21T20:07:57.875Z"
+          }
+        ]
+      }
+    },
+    "user_6a03fa29c809": {
+      "id": "user_6a03fa29c809",
+      "name": "Shubham",
+      "email": "godanishubham30@gmail.com",
+      "passwordHash": "e9ff22d7b4bb374aa39bcab925beace9f5bb3ac076aae4b67a3dc12547794334",
+      "passwordSalt": "1eb37d60a1861eaaa3531a4f03c76ed1",
+      "createdAt": "2026-03-21T20:09:42.258Z",
+      "lastLoginAt": "2026-03-21T20:10:39.678Z",
+      "activities": {
+        "plannerSearches": [
+          {
+            "tripKey": "ahmedabad|jaipur|2026-03-25|2026-03-28|Smart",
+            "origin": "Ahmedabad",
+            "destination": "Jaipur",
+            "routeLabel": "Ahmedabad to Jaipur",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "₹19,838",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "planner_search",
+            "updatedAt": "2026-03-21T20:11:32.642Z",
+            "createdAt": "2026-03-21T20:11:26.990Z"
+          },
+          {
+            "tripKey": "ahmedabad|shimla|2026-03-25|2026-03-28|Smart",
+            "origin": "Ahmedabad",
+            "destination": "Shimla",
+            "routeLabel": "Ahmedabad to Shimla",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "₹20,737",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "planner_search",
+            "updatedAt": "2026-03-21T20:10:39.686Z",
+            "createdAt": "2026-03-21T20:09:42.272Z"
+          }
+        ],
+        "generatedItineraries": [
+          {
+            "tripKey": "ahmedabad|jaipur|2026-03-25|2026-03-28|Smart",
+            "origin": "Ahmedabad",
+            "destination": "Jaipur",
+            "routeLabel": "Ahmedabad to Jaipur",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "₹19,838",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "generated_itinerary",
+            "updatedAt": "2026-03-21T20:11:32.643Z",
+            "createdAt": "2026-03-21T20:11:26.990Z"
+          },
+          {
+            "tripKey": "ahmedabad|shimla|2026-03-25|2026-03-28|Smart",
+            "origin": "Ahmedabad",
+            "destination": "Shimla",
+            "routeLabel": "Ahmedabad to Shimla",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "₹20,737",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "generated_itinerary",
+            "updatedAt": "2026-03-21T20:10:39.686Z",
+            "createdAt": "2026-03-21T20:09:42.273Z"
+          }
+        ],
+        "sharedItineraries": [
+          {
+            "tripKey": "ahmedabad|jaipur|2026-03-25|2026-03-28|Smart",
+            "origin": "Ahmedabad",
+            "destination": "Jaipur",
+            "routeLabel": "Ahmedabad to Jaipur",
+            "fromDate": "2026-03-25",
+            "toDate": "2026-03-28",
+            "days": 4,
+            "budget": "Medium",
+            "budgetLabel": "₹19,838",
+            "travelMode": "Smart",
+            "primaryMode": "Train",
+            "travelStyle": "Relaxed",
+            "tripType": "Relaxed",
+            "pace": "Moderate",
+            "travelers": "1",
+            "totalStops": 15,
+            "destinationImage": "",
+            "kind": "shared_itinerary",
+            "updatedAt": "2026-03-21T20:11:35.549Z",
+            "createdAt": "2026-03-21T20:11:35.549Z"
+          }
+        ]
+      }
+    }
+  },
+  "sessions": {
+    "466aed99c00e8f6144059f264d4ebeb47a728c30c4adf31e": {
+      "userId": "user_155a5ded494c",
+      "createdAt": "2026-03-21T20:07:57.754Z"
+    },
+    "052f0720b0a2021de5c0b7521df72c2477346bc0864ee1f3": {
+      "userId": "user_6a03fa29c809",
+      "createdAt": "2026-03-21T20:10:39.678Z"
+    }
+  },
+  "adminSessions": {
+    "c53b432abb147d7f79fc97812188009e0e4b854846ee755e": {
+      "username": "tripzy_admin",
+      "createdAt": "2026-03-21T20:20:49.557Z"
+    },
+    "9da194a684a59e0a1d1b338e2d719903a0dc54407e862b35": {
+      "username": "tripzy_admin",
+      "createdAt": "2026-03-21T20:54:17.561Z"
+    },
+    "dcc0bbdcc518631c9a8c4966e9d9ca33d86af6f44a7e0842": {
+      "username": "tripzy_admin",
+      "createdAt": "2026-03-25T17:55:16.979Z"
+    }
+  },
+  "meta": {
+    "earlyUserLimit": 500,
+    "earlyUsersAllocated": 0
+  },
+  "updatedAt": "2026-03-25T17:55:16.982Z"
+}

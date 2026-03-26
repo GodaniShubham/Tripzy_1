@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 2,
+  "visitors": {
+    "2deb2965-4e15-4d41-9bab-ef768d666843": {
+      "firstSeen": "2026-03-21T19:02:22.467Z",
+      "lastSeen": "2026-03-21T19:02:29.553Z"
+    },
+    "207fb513-8dde-49e9-9a66-c15b673ff026": {
+      "firstSeen": "2026-03-21T19:23:06.729Z",
+      "lastSeen": "2026-03-21T20:11:26.993Z"
+    },
+    "89dcff7f-5f38-4ef4-bed9-eccf570e5267": {
+      "firstSeen": "2026-03-25T17:55:04.193Z",
+      "lastSeen": "2026-03-26T08:58:42.673Z"
+    }
+  },
+  "plannerUsers": {
+    "2deb2965-4e15-4d41-9bab-ef768d666843": {
+      "firstUsedAt": "2026-03-21T19:02:22.467Z",
+      "lastUsedAt": "2026-03-21T19:02:29.553Z"
+    },
+    "207fb513-8dde-49e9-9a66-c15b673ff026": {
+      "firstUsedAt": "2026-03-21T19:25:11.759Z",
+      "lastUsedAt": "2026-03-21T20:11:26.993Z"
+    },
+    "89dcff7f-5f38-4ef4-bed9-eccf570e5267": {
+      "firstUsedAt": "2026-03-25T17:55:04.193Z",
+      "lastUsedAt": "2026-03-26T08:58:42.673Z"
+    }
+  },
+  "visitEvents": 8,
+  "plannerUseEvents": 19,
+  "itinerariesGenerated": 9,
+  "updatedAt": "2026-03-26T08:58:42.675Z"
+}

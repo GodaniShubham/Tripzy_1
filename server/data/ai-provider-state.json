@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 2,
+  "providers": {
+    "standard_1": {
+      "status": "active",
+      "lastAttemptAt": "2026-03-26T08:58:44.526Z",
+      "failures": 0,
+      "cooldownUntil": null,
+      "lastHttpStatus": 200,
+      "lastError": "",
+      "lastSuccessAt": "2026-03-26T08:58:46.963Z"
+    }
+  },
+  "dailyUsage": {
+    "2026-03-25": {
+      "date": "2026-03-25",
+      "totalRequests": 2,
+      "successCount": 1,
+      "fallbackCount": 0,
+      "totalInputTokens": 1251,
+      "totalOutputTokens": 801,
+      "totalCostUsd": 0.000127,
+      "totalCostInr": 0.0105,
+      "premiumSuccesses": 0,
+      "providers": {
+        "standard_1": {
+          "requests": 2,
+          "successes": 1,
+          "failures": 0,
+          "inputTokens": 1251,
+          "outputTokens": 801,
+          "costUsd": 0.000127,
+          "costInr": 0.0105
+        }
+      }
+    },
+    "2026-03-26": {
+      "date": "2026-03-26",
+      "totalRequests": 3,
+      "successCount": 2,
+      "fallbackCount": 0,
+      "totalInputTokens": 2228,
+      "totalOutputTokens": 1349,
+      "totalCostUsd": 0.00022,
+      "totalCostInr": 0.0183,
+      "premiumSuccesses": 0,
+      "providers": {
+        "standard_1": {
+          "requests": 3,
+          "successes": 2,
+          "failures": 0,
+          "inputTokens": 2228,
+          "outputTokens": 1349,
+          "costUsd": 0.00022,
+          "costInr": 0.0183
+        }
+      }
+    }
+  },
+  "updatedAt": "2026-03-26T08:58:46.964Z"
+}
