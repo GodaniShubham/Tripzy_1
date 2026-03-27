@@ -9,6 +9,8 @@ const buildTitleUrl = (title) =>
 const normalizePlaceText = (value = '') =>
   value.toLowerCase().replace(/[^a-z0-9,\s-]/g, ' ').replace(/\s+/g, ' ').trim();
 
+const compactPlaceText = (value = '') => normalizePlaceText(value).replace(/\s+/g, '');
+
 const curatedImageRules = [
   {
     keywords: ['goa', 'panaji', 'calangute', 'margao', 'old goa', 'andaman', 'port blair', 'havelock', 'lakshadweep'],
@@ -41,12 +43,47 @@ const genericIndiaImagePool = [
   'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1200&auto=format&fit=crop',
 ];
 
-const extractImage = (data) => {
-  const pages = data.query?.pages;
-  if (!pages) return null;
-  const pageId = Object.keys(pages)[0];
-  const page = pages[pageId];
-  return page?.original?.source || page?.thumbnail?.source || null;
+const getPageImage = (page) => page?.original?.source || page?.thumbnail?.source || null;
+
+const scorePageTitleMatch = (title, seedText) => {
+  const normalizedTitle = normalizePlaceText(title);
+  const compactTitle = compactPlaceText(title);
+  const normalizedSeed = normalizePlaceText(seedText);
+  const compactSeed = compactPlaceText(seedText);
+  const tokens = normalizedSeed.split(' ').filter(Boolean);
+
+  let score = 0;
+
+  if (normalizedTitle === normalizedSeed) score += 120;
+  if (compactSeed && compactTitle === compactSeed) score += 110;
+  if (normalizedTitle.startsWith(normalizedSeed)) score += 60;
+  if (normalizedTitle.includes(normalizedSeed)) score += 40;
+  if (compactSeed && compactTitle.includes(compactSeed)) score += 35;
+
+  tokens.forEach((token) => {
+    if (normalizedTitle.includes(token)) score += 8;
+  });
+
+  if (normalizedTitle.includes('disambiguation')) score -= 120;
+  if (normalizedTitle.includes('film') || normalizedTitle.includes('album') || normalizedTitle.includes('song')) score -= 40;
+
+  return score;
+};
+
+const extractBestImage = (data, seedText) => {
+  const pages = Object.values(data.query?.pages || {});
+  if (!pages.length) return null;
+
+  const rankedPages = pages
+    .map((page) => ({
+      page,
+      score: scorePageTitleMatch(page?.title || '', seedText),
+      image: getPageImage(page),
+    }))
+    .filter((entry) => entry.image)
+    .sort((left, right) => right.score - left.score);
+
+  return rankedPages[0]?.image || null;
 };
 
 const pickDeterministicFallback = (seedText) => {
@@ -78,17 +115,22 @@ const WikipediaImage = ({ place, query, wikiTitle, className, alt }) => {
       setImgUrl(null);
 
       try {
-        const searches = [];
+        const titleCandidates = [wikiTitle, place, query]
+          .filter(Boolean)
+          .flatMap((value) => [value, `${value} India`]);
+        const uniqueTitleCandidates = [...new Set(titleCandidates)];
 
-        if (wikiTitle) {
-          const titleRes = await fetch(buildTitleUrl(encodeURIComponent(wikiTitle)));
+        for (const title of uniqueTitleCandidates) {
+          const titleRes = await fetch(buildTitleUrl(encodeURIComponent(title)));
           const titleData = await titleRes.json();
-          const titleImg = extractImage(titleData);
+          const titleImg = extractBestImage(titleData, [wikiTitle, place, query, title].filter(Boolean).join(' '));
           if (titleImg && isMounted) {
             setImgUrl(titleImg);
             return;
           }
         }
+
+        const searches = [];
 
         if (query) searches.push(query);
         if (place) searches.push(place, `${place} India`, `${place} travel`);
@@ -98,7 +140,7 @@ const WikipediaImage = ({ place, query, wikiTitle, className, alt }) => {
         for (const term of uniqueSearches) {
           const res = await fetch(buildSearchUrl(encodeURIComponent(term)));
           const data = await res.json();
-          const bestImage = extractImage(data);
+          const bestImage = extractBestImage(data, [wikiTitle, place, query, term].filter(Boolean).join(' '));
           if (bestImage && isMounted) {
             setImgUrl(bestImage);
             return;
