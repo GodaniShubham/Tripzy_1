@@ -48,6 +48,14 @@ const fallbackPlaceCatalog = [
   { name: 'Kerala', formatted: 'Kerala, India', lat: 10.8505, lon: 76.2711, state: 'Kerala', country: 'India', aliases: ['kochi', 'cochin'] },
   { name: 'Darjeeling', formatted: 'Darjeeling, West Bengal, India', lat: 27.036, lon: 88.2627, state: 'West Bengal', country: 'India' },
   { name: 'Leh Ladakh', formatted: 'Leh, Ladakh, India', lat: 34.1526, lon: 77.577, state: 'Ladakh', country: 'India', aliases: ['ladakh', 'leh'] },
+  { name: 'Spiti Valley', formatted: 'Spiti Valley, Himachal Pradesh, India', lat: 32.2462, lon: 78.0347, state: 'Himachal Pradesh', country: 'India', aliases: ['spiti', 'spiti valley', 'kaza', 'tabo', 'chandratal'], aliasesExact: ['spitivalley'] },
+  { name: 'Nubra Valley', formatted: 'Nubra Valley, Ladakh, India', lat: 34.6256, lon: 77.5515, state: 'Ladakh', country: 'India', aliases: ['nubra', 'nubra valley', 'diskit', 'hunder'], aliasesExact: ['nubravalley'] },
+  { name: 'Pangong Lake', formatted: 'Pangong Lake, Ladakh, India', lat: 33.7557, lon: 78.6674, state: 'Ladakh', country: 'India', aliases: ['pangong', 'pangong lake', 'pangong tso'], aliasesExact: ['pangonglake'] },
+  { name: 'Tso Moriri', formatted: 'Tso Moriri, Ladakh, India', lat: 32.9697, lon: 78.3198, state: 'Ladakh', country: 'India', aliases: ['tso moriri', 'tsomoriri', 'korzok'], aliasesExact: ['tsomoriri'] },
+  { name: 'Kasol', formatted: 'Kasol, Himachal Pradesh, India', lat: 32.0094, lon: 77.3152, state: 'Himachal Pradesh', country: 'India', aliases: ['kasol', 'parvati valley', 'tosh', 'malana', 'chalal'], aliasesExact: ['parvativalley'] },
+  { name: 'Tirthan Valley', formatted: 'Tirthan Valley, Himachal Pradesh, India', lat: 31.6383, lon: 77.3502, state: 'Himachal Pradesh', country: 'India', aliases: ['tirthan', 'tirthan valley', 'jibhi', 'banjar', 'ghiyagi'], aliasesExact: ['tirthanvalley'] },
+  { name: 'Sissu', formatted: 'Sissu, Himachal Pradesh, India', lat: 32.4771, lon: 77.1096, state: 'Himachal Pradesh', country: 'India', aliases: ['sissu', 'lahaul', 'lahaul valley'], aliasesExact: ['lahaulvalley'] },
+  { name: 'Auli', formatted: 'Auli, Uttarakhand, India', lat: 30.5284, lon: 79.5669, state: 'Uttarakhand', country: 'India', aliases: ['auli', 'joshimath'] },
   { name: 'Amritsar', formatted: 'Amritsar, Punjab, India', lat: 31.634, lon: 74.8723, state: 'Punjab', country: 'India' },
   { name: 'Andaman and Nicobar Islands', formatted: 'Andaman and Nicobar Islands, India', lat: 11.7401, lon: 92.6586, state: 'Andaman and Nicobar Islands', country: 'India', aliases: ['andaman'] },
   { name: 'Srinagar', formatted: 'Srinagar, Jammu and Kashmir, India', lat: 34.0837, lon: 74.7973, state: 'Jammu and Kashmir', country: 'India', aliases: ['kashmir'] },
@@ -151,6 +159,8 @@ const normalizeSearchText = (value = '') =>
     .replace(/[^\w\s-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+const compactSearchText = (value = '') => normalizeSearchText(value).replace(/\s+/g, '');
 
 const getTravelerCount = (travelers = '1') => {
   if (travelers === '3-5') return 4;
@@ -257,12 +267,15 @@ const expandPlacesWithNearbyCities = ({ destination, preferences, places = [] })
 
 const buildCatalogSearchResults = (catalog, text, limit = 5) => {
   const normalizedQuery = normalizeSearchText(text);
+  const compactQuery = compactSearchText(text);
   const tokens = normalizedQuery.split(' ').filter(Boolean);
   return catalog
     .map((item) => {
       const haystack = normalizeSearchText([item.name, item.formatted, item.state, ...(item.aliases || [])].join(' '));
+      const compactHaystack = compactSearchText([item.name, item.formatted, item.state, ...(item.aliases || []), ...(item.aliasesExact || [])].join(' '));
       let score = 0;
       if (haystack.includes(normalizedQuery)) score += 40;
+      if (compactQuery && compactHaystack.includes(compactQuery)) score += 35;
       tokens.forEach((token) => {
         if (haystack.includes(token)) score += 10;
       });
@@ -319,7 +332,6 @@ const resolvePlace = async (text) => {
     const url = new URL(`${GEO_BASE}/v1/geocode/search`);
     url.searchParams.set('text', text);
     url.searchParams.set('format', 'json');
-    url.searchParams.set('type', 'locality');
     url.searchParams.set('filter', 'countrycode:in');
     url.searchParams.set('bias', 'countrycode:in');
     url.searchParams.set('lang', 'en');

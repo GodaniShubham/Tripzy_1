@@ -68,10 +68,14 @@ const getPricingConfig = () => ({
   standardOutputUsdPerMillion: parseNumber(process.env.TRIPZY_AI_OUTPUT_COST_PER_MILLION, 0.08),
   premiumInputUsdPerMillion: parseNumber(process.env.TRIPZY_AI_PREMIUM_INPUT_COST_PER_MILLION, parseNumber(process.env.TRIPZY_AI_INPUT_COST_PER_MILLION, 0.05)),
   premiumOutputUsdPerMillion: parseNumber(process.env.TRIPZY_AI_PREMIUM_OUTPUT_COST_PER_MILLION, parseNumber(process.env.TRIPZY_AI_OUTPUT_COST_PER_MILLION, 0.08)),
+  reserveInputUsdPerMillion: parseNumber(process.env.TRIPZY_AI_RESERVE_INPUT_COST_PER_MILLION, 0.1),
+  reserveOutputUsdPerMillion: parseNumber(process.env.TRIPZY_AI_RESERVE_OUTPUT_COST_PER_MILLION, 0.4),
   usdToInr: parseNumber(process.env.TRIPZY_USD_TO_INR, 83),
   dailyBudgetInr: Math.max(0, parseNumber(process.env.TRIPZY_AI_DAILY_BUDGET_INR, 0)),
   premiumDailyBudgetInr: Math.max(0, parseNumber(process.env.TRIPZY_AI_PREMIUM_DAILY_BUDGET_INR, 0)),
   premiumMaxCallsPerDay: Math.max(0, parseNumber(process.env.TRIPZY_AI_PREMIUM_MAX_CALLS_PER_DAY, 0)),
+  reserveDailyBudgetInr: Math.max(0, parseNumber(process.env.TRIPZY_AI_RESERVE_DAILY_BUDGET_INR, 0)),
+  reserveMaxCallsPerDay: Math.max(0, parseNumber(process.env.TRIPZY_AI_RESERVE_MAX_CALLS_PER_DAY, 0)),
 });
 
 const buildProviderPool = () => {
@@ -87,6 +91,8 @@ const buildProviderPool = () => {
   const standardProviders = splitKeys(process.env.TRIPZY_AI_KEYS).map((apiKey, index) => ({
     slot: `standard_${index + 1}`,
     tier: 'standard',
+    providerFamily: 'groq',
+    apiFormat: 'openai_compat',
     apiKey,
     baseUrl,
     model,
@@ -105,6 +111,8 @@ const buildProviderPool = () => {
         {
           slot: 'premium_1',
           tier: 'premium',
+          providerFamily: 'groq',
+          apiFormat: 'openai_compat',
           apiKey: premiumKey,
           baseUrl: premiumBaseUrl,
           model: premiumModel,
@@ -116,7 +124,30 @@ const buildProviderPool = () => {
       ]
     : [];
 
-  return [...standardProviders, ...premiumProviders];
+  const reserveKeys = splitKeys(process.env.TRIPZY_AI_RESERVE_KEYS || process.env.TRIPZY_AI_GEMINI_KEYS || process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY);
+  const reserveModel = cleanText(
+    process.env.TRIPZY_AI_RESERVE_MODEL || process.env.TRIPZY_AI_GEMINI_MODEL || 'gemini-2.5-flash-lite',
+    120
+  );
+  const reserveBaseUrl = cleanText(
+    process.env.TRIPZY_AI_RESERVE_BASE_URL || process.env.TRIPZY_AI_GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta/models',
+    300
+  );
+  const reserveProviders = reserveKeys.map((apiKey, index) => ({
+    slot: `reserve_${index + 1}`,
+    tier: 'reserve',
+    providerFamily: 'gemini',
+    apiFormat: 'gemini',
+    apiKey,
+    baseUrl: reserveBaseUrl,
+    model: reserveModel,
+    timeoutMs: Math.max(timeoutMs, 3000),
+    cooldownMs: Math.max(cooldownMs, 45000),
+    inputUsdPerMillion: pricing.reserveInputUsdPerMillion,
+    outputUsdPerMillion: pricing.reserveOutputUsdPerMillion,
+  }));
+
+  return [...standardProviders, ...premiumProviders, ...reserveProviders];
 };
 
 const readResponsePayload = async (response) => {
@@ -155,6 +186,7 @@ const getDailyUsageBucket = (state, dateKey) => {
     totalCostUsd: parseNumber(bucket.totalCostUsd, 0),
     totalCostInr: parseNumber(bucket.totalCostInr, 0),
     premiumSuccesses: parseNumber(bucket.premiumSuccesses, 0),
+    reserveSuccesses: parseNumber(bucket.reserveSuccesses, 0),
     providers: bucket.providers || {},
   };
 };
@@ -193,6 +225,48 @@ const buildCostEstimate = ({ provider, prompt, content }) => {
     totalCostUsd,
     totalCostInr,
   };
+};
+
+const buildGeminiApiUrl = (provider) => {
+  const base = cleanText(provider.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/models', 300).replace(/\/+$/, '');
+  return `${base}/${encodeURIComponent(provider.model)}:generateContent`;
+};
+
+const getGeminiContentText = (payload) => {
+  const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
+
+  for (const candidate of candidates) {
+    const parts = Array.isArray(candidate?.content?.parts) ? candidate.content.parts : [];
+    const text = parts
+      .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+      .join('')
+      .trim();
+
+    if (text) {
+      return text;
+    }
+  }
+
+  return '';
+};
+
+const buildReserveEligibility = ({ primaryProviders, state, pricing, dailyUsage }) => {
+  if (!primaryProviders.length) return true;
+
+  return primaryProviders.every((provider) => {
+    if (
+      provider.tier === 'premium' &&
+      (
+        (pricing.premiumDailyBudgetInr > 0 && dailyUsage.totalCostInr >= pricing.premiumDailyBudgetInr) ||
+        (pricing.premiumMaxCallsPerDay > 0 && dailyUsage.premiumSuccesses >= pricing.premiumMaxCallsPerDay)
+      )
+    ) {
+      return true;
+    }
+
+    const status = state.providers?.[provider.slot]?.status || 'active';
+    return status === 'exhausted' || status === 'disabled';
+  });
 };
 
 export const createAiProviderPool = ({ stateFilePath }) => {
@@ -239,6 +313,8 @@ export const createAiProviderPool = ({ stateFilePath }) => {
       dailyBudgetInr: pricing.dailyBudgetInr,
       premiumDailyBudgetInr: pricing.premiumDailyBudgetInr,
       premiumMaxCallsPerDay: pricing.premiumMaxCallsPerDay,
+      reserveDailyBudgetInr: pricing.reserveDailyBudgetInr,
+      reserveMaxCallsPerDay: pricing.reserveMaxCallsPerDay,
       usdToInr: pricing.usdToInr,
     };
   };
@@ -285,6 +361,8 @@ export const createAiProviderPool = ({ stateFilePath }) => {
     const dateKey = getDateKey();
     const dailyUsage = getDailyUsageBucket(state, dateKey);
     const pricing = getPricingConfig();
+    const primaryProviders = providers.filter((provider) => provider.tier !== 'reserve');
+    const reserveProviders = providers.filter((provider) => provider.tier === 'reserve');
 
     dailyUsage.totalRequests += 1;
 
@@ -300,7 +378,7 @@ export const createAiProviderPool = ({ stateFilePath }) => {
       };
     }
 
-    for (const provider of providers) {
+    const tryProvider = async (provider) => {
       if (
         provider.tier === 'premium' &&
         (
@@ -314,7 +392,23 @@ export const createAiProviderPool = ({ stateFilePath }) => {
           skipped: true,
           reason: 'premium_budget_guard',
         });
-        continue;
+        return null;
+      }
+
+      if (
+        provider.tier === 'reserve' &&
+        (
+          (pricing.reserveDailyBudgetInr > 0 && dailyUsage.totalCostInr >= pricing.reserveDailyBudgetInr) ||
+          (pricing.reserveMaxCallsPerDay > 0 && dailyUsage.reserveSuccesses >= pricing.reserveMaxCallsPerDay)
+        )
+      ) {
+        attempts.push({
+          slot: provider.slot,
+          model: provider.model,
+          skipped: true,
+          reason: 'reserve_budget_guard',
+        });
+        return null;
       }
 
       const providerState = state.providers?.[provider.slot] || {};
@@ -327,7 +421,7 @@ export const createAiProviderPool = ({ stateFilePath }) => {
           skipped: true,
           reason: 'cooldown',
         });
-        continue;
+        return null;
       }
 
       state.providers[provider.slot] = {
@@ -343,30 +437,66 @@ export const createAiProviderPool = ({ stateFilePath }) => {
       const timeoutHandle = setTimeout(() => controller.abort(), provider.timeoutMs);
 
       try {
-        const response = await fetch(provider.baseUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${provider.apiKey}`,
-          },
-          signal: controller.signal,
-          body: JSON.stringify({
-            model: provider.model,
-            temperature,
-            max_tokens: maxTokens,
-            response_format: { type: 'json_object' },
-            messages: [
-              {
-                role: 'system',
-                content: 'You are a travel itinerary generator. Return valid JSON only. Never use markdown fences.',
-              },
-              {
-                role: 'user',
-                content: prompt,
-              },
-            ],
-          }),
-        });
+        const response = await fetch(
+          provider.apiFormat === 'gemini' ? buildGeminiApiUrl(provider) : provider.baseUrl,
+          {
+            method: 'POST',
+            headers:
+              provider.apiFormat === 'gemini'
+                ? {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': provider.apiKey,
+                  }
+                : {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${provider.apiKey}`,
+                  },
+            signal: controller.signal,
+            body: JSON.stringify(
+              provider.apiFormat === 'gemini'
+                ? {
+                    systemInstruction: {
+                      parts: [
+                        {
+                          text: 'You are a travel itinerary generator. Return valid JSON only. Never use markdown fences.',
+                        },
+                      ],
+                    },
+                    contents: [
+                      {
+                        role: 'user',
+                        parts: [
+                          {
+                            text: prompt,
+                          },
+                        ],
+                      },
+                    ],
+                    generationConfig: {
+                      temperature,
+                      maxOutputTokens: maxTokens,
+                      responseMimeType: 'application/json',
+                    },
+                  }
+                : {
+                    model: provider.model,
+                    temperature,
+                    max_tokens: maxTokens,
+                    response_format: { type: 'json_object' },
+                    messages: [
+                      {
+                        role: 'system',
+                        content: 'You are a travel itinerary generator. Return valid JSON only. Never use markdown fences.',
+                      },
+                      {
+                        role: 'user',
+                        content: prompt,
+                      },
+                    ],
+                  }
+            ),
+          }
+        );
 
         clearTimeout(timeoutHandle);
         const payload = await readResponsePayload(response);
@@ -396,10 +526,13 @@ export const createAiProviderPool = ({ stateFilePath }) => {
             statusCode: response.status,
             error: state.providers[provider.slot].lastError,
           });
-          continue;
+          return null;
         }
 
-        const content = payload.json?.choices?.[0]?.message?.content || '';
+        const content =
+          provider.apiFormat === 'gemini'
+            ? getGeminiContentText(payload.json)
+            : payload.json?.choices?.[0]?.message?.content || '';
         if (!content) {
           state.providers[provider.slot] = {
             ...state.providers[provider.slot],
@@ -418,7 +551,7 @@ export const createAiProviderPool = ({ stateFilePath }) => {
             statusCode: response.status,
             error: 'Provider returned an empty completion.',
           });
-          continue;
+          return null;
         }
 
         const costEstimate = buildCostEstimate({ provider, prompt, content });
@@ -436,6 +569,9 @@ export const createAiProviderPool = ({ stateFilePath }) => {
         dailyUsage.totalCostInr = Number((dailyUsage.totalCostInr + costEstimate.totalCostInr).toFixed(4));
         if (provider.tier === 'premium') {
           dailyUsage.premiumSuccesses += 1;
+        }
+        if (provider.tier === 'reserve') {
+          dailyUsage.reserveSuccesses += 1;
         }
 
         state.providers[provider.slot] = {
@@ -485,6 +621,30 @@ export const createAiProviderPool = ({ stateFilePath }) => {
           statusCode: 0,
           error: state.providers[provider.slot].lastError,
         });
+        return null;
+      }
+    };
+
+    for (const provider of primaryProviders) {
+      const result = await tryProvider(provider);
+      if (result) {
+        return result;
+      }
+    }
+
+    const isReserveEligible = buildReserveEligibility({
+      primaryProviders,
+      state,
+      pricing,
+      dailyUsage,
+    });
+
+    if (isReserveEligible) {
+      for (const provider of reserveProviders) {
+        const result = await tryProvider(provider);
+        if (result) {
+          return result;
+        }
       }
     }
 
@@ -495,7 +655,9 @@ export const createAiProviderPool = ({ stateFilePath }) => {
     return {
       ok: false,
       useFallback: true,
-      error: 'All configured AI providers failed, cooled down, or were blocked by cost guards.',
+      error: isReserveEligible
+        ? 'All configured AI providers failed, cooled down, or were blocked by cost guards.'
+        : 'Groq providers are still reserved as the primary tier. Gemini reserve keys will only activate after every Groq key is fully exhausted or blocked by quota guards.',
       attempts,
     };
   };

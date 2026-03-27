@@ -190,6 +190,22 @@ export const staticDestinationPlaceSets = [
     ],
   },
   {
+    key: 'spiti valley',
+    aliases: ['spiti valley', 'spiti', 'kaza', 'tabo', 'chandratal'],
+    places: [
+      { name: 'Key Monastery', categoryLabel: 'monastery', address: 'Kaza, Spiti Valley, Himachal Pradesh, India', latOffset: 0.03, lonOffset: 0.018, distanceMeters: 4200 },
+      { name: 'Kibber Village', categoryLabel: 'village', address: 'Kibber, Spiti Valley, Himachal Pradesh, India', latOffset: 0.05, lonOffset: 0.028, distanceMeters: 6900 },
+      { name: 'Langza Buddha', categoryLabel: 'viewpoint', address: 'Langza, Spiti Valley, Himachal Pradesh, India', latOffset: 0.045, lonOffset: 0.012, distanceMeters: 6100 },
+      { name: 'Hikkim Post Office', categoryLabel: 'landmark', address: 'Hikkim, Spiti Valley, Himachal Pradesh, India', latOffset: 0.041, lonOffset: 0.014, distanceMeters: 5600 },
+      { name: 'Komic Village', categoryLabel: 'village', address: 'Komic, Spiti Valley, Himachal Pradesh, India', latOffset: 0.048, lonOffset: 0.016, distanceMeters: 6400 },
+      { name: 'Tabo Monastery', categoryLabel: 'monastery', address: 'Tabo, Spiti Valley, Himachal Pradesh, India', latOffset: -0.08, lonOffset: -0.022, distanceMeters: 11600 },
+      { name: 'Dhankar Monastery', categoryLabel: 'monastery', address: 'Dhankar, Spiti Valley, Himachal Pradesh, India', latOffset: -0.03, lonOffset: -0.01, distanceMeters: 4800 },
+      { name: 'Chicham Bridge', categoryLabel: 'bridge viewpoint', address: 'Chicham, Spiti Valley, Himachal Pradesh, India', latOffset: 0.054, lonOffset: 0.025, distanceMeters: 7200 },
+      { name: 'Pin Valley View', categoryLabel: 'valley', address: 'Pin Valley, Spiti Valley, Himachal Pradesh, India', latOffset: -0.035, lonOffset: 0.02, distanceMeters: 5300 },
+      { name: 'Chandratal Lake', categoryLabel: 'lake', address: 'Chandratal, Himachal Pradesh, India', latOffset: 0.12, lonOffset: -0.035, distanceMeters: 18500 },
+    ],
+  },
+  {
     key: 'amritsar',
     aliases: ['amritsar'],
     places: [
